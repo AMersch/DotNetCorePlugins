@@ -84,6 +84,21 @@ namespace McMaster.NETCore.Plugins
         }
 
         /// <summary>
+        /// True when this plugin be unloaded.
+        /// </summary>
+        public bool IsUnloadable
+        {
+            get
+            {
+#if FEATURE_UNLOAD
+                return _context.IsCollectible;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>
         /// Load the main assembly for the plugin.
         /// </summary>
         public Assembly LoadDefaultAssembly()
@@ -116,8 +131,9 @@ namespace McMaster.NETCore.Plugins
 
 #if FEATURE_UNLOAD
         /// <summary>
-        /// Disposes the plugin loader. On .NET Core 3.0 and up, this will unload an
-        /// assemblies which which were loaded during the lifetime of the plugin.
+        /// Disposes the plugin loader. This only does something if <see cref="IsUnloadable" /> is true.
+        /// When true, this will unload assemblies which which were loaded during the lifetime
+        /// of the plugin.
         /// </summary>
         public void Dispose()
         {

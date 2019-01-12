@@ -23,7 +23,9 @@ namespace McMaster.NETCore.Plugins.Tests
             Assert.Equal("Hello world!", method.Invoke(null, Array.Empty<object>()));
             loader.Dispose();
             Assert.Throws<ObjectDisposedException>(() => loader.LoadDefaultAssembly());
-            method.Invoke(null, Array.Empty<object>());
+            Assert.True(loader.IsUnloadable);
+            Assert.Throws<InvalidOperationException>(
+                () => method.Invoke(null, Array.Empty<object>()));
         }
 #endif
 
