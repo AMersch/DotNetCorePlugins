@@ -8,6 +8,25 @@ namespace McMaster.NETCore.Plugins.Tests
 {
     public class BasicAssemblyLoaderTests
     {
+#if NETCOREAPP3_0
+        [Fact]
+        public void PluginLoaderCanUnload()
+        {
+            var path = TestResources.GetTestProjectAssembly("NetCoreApp20App");
+            var loader = PluginLoader.CreateFromConfigFile(path);
+            var assembly = loader.LoadDefaultAssembly();
+
+            var method = assembly
+                .GetType("NetCoreApp20App.Program", throwOnError: true)
+                .GetMethod("GetGreeting", BindingFlags.Static | BindingFlags.Public);
+            Assert.NotNull(method);
+            Assert.Equal("Hello world!", method.Invoke(null, Array.Empty<object>()));
+            loader.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => loader.LoadDefaultAssembly());
+            method.Invoke(null, Array.Empty<object>());
+        }
+#endif
+
         [Fact]
         public void LoadsNetCoreProjectWithNativeDeps()
         {

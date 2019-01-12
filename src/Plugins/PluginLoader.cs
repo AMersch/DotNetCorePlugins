@@ -20,6 +20,9 @@ namespace McMaster.NETCore.Plugins
     /// </para>
     /// </summary>
     public class PluginLoader
+#if FEATURE_UNLOAD
+        : IDisposable
+#endif
     {
         /// <summary>
         /// Create a plugin loader using the settings from a plugin config file.
@@ -70,12 +73,24 @@ namespace McMaster.NETCore.Plugins
 
         private readonly string _mainAssembly;
         private AssemblyLoadContext _context;
+#if FEATURE_UNLOAD
+        private volatile bool _disposed;
+#endif
+
+        internal PluginLoader(PluginConfig config, string baseDir, Type[] sharedTypes, PluginLoaderOptions loaderOptions)
+        {
+            _mainAssembly = Path.Combine(baseDir, config.MainAssembly.Name + ".dll");
+            _context = CreateLoadContext(baseDir, config, sharedTypes, loaderOptions);
+        }
 
         /// <summary>
         /// Load the main assembly for the plugin.
         /// </summary>
         public Assembly LoadDefaultAssembly()
-        => _context.LoadFromAssemblyPath(_mainAssembly);
+        {
+            EnsureNotDisposed();
+            return _context.LoadFromAssemblyPath(_mainAssembly);
+        }
 
         /// <summary>
         /// Load an assembly by name.
@@ -83,7 +98,10 @@ namespace McMaster.NETCore.Plugins
         /// <param name="assemblyName">The assembly name.</param>
         /// <returns>The assembly.</returns>
         public Assembly LoadAssembly(AssemblyName assemblyName)
-            => _context.LoadFromAssemblyName(assemblyName);
+        {
+            EnsureNotDisposed();
+            return _context.LoadFromAssemblyName(assemblyName);
+        }
 
         /// <summary>
         /// Load an assembly by name.
@@ -91,12 +109,40 @@ namespace McMaster.NETCore.Plugins
         /// <param name="assemblyName">The assembly name.</param>
         /// <returns>The assembly.</returns>
         public Assembly LoadAssembly(string assemblyName)
-            => LoadAssembly(new AssemblyName(assemblyName));
-
-        internal PluginLoader(PluginConfig config, string baseDir, Type[] sharedTypes, PluginLoaderOptions loaderOptions)
         {
-            _mainAssembly = Path.Combine(baseDir, config.MainAssembly.Name + ".dll");
-            _context = CreateLoadContext(baseDir, config, sharedTypes, loaderOptions);
+            EnsureNotDisposed();
+            return LoadAssembly(new AssemblyName(assemblyName));
+        }
+
+#if FEATURE_UNLOAD
+        /// <summary>
+        /// Disposes the plugin loader. On .NET Core 3.0 and up, this will unload an
+        /// assemblies which which were loaded during the lifetime of the plugin.
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            if (_context.IsCollectible)
+            {
+                _context.Unload();
+            }
+    }
+#endif
+
+        private void EnsureNotDisposed()
+        {
+#if FEATURE_UNLOAD
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(PluginLoader));
+            }
+#endif
         }
 
         private static AssemblyLoadContext CreateLoadContext(
