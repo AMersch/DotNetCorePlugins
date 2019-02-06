@@ -19,10 +19,7 @@ namespace McMaster.NETCore.Plugins
     /// which satisfy the plugin's requirements.
     /// </para>
     /// </summary>
-    public class PluginLoader
-#if FEATURE_UNLOAD
-        : IDisposable
-#endif
+    public class PluginLoader : IDisposable
     {
         /// <summary>
         /// Create a plugin loader using the settings from a plugin config file.
@@ -72,10 +69,8 @@ namespace McMaster.NETCore.Plugins
         }
 
         private readonly string _mainAssembly;
-        private AssemblyLoadContext _context;
-#if FEATURE_UNLOAD
+        private readonly AssemblyLoadContext _context;
         private volatile bool _disposed;
-#endif
 
         internal PluginLoader(PluginConfig config, string baseDir, Type[] sharedTypes, PluginLoaderOptions loaderOptions)
         {
@@ -97,6 +92,8 @@ namespace McMaster.NETCore.Plugins
 #endif
             }
         }
+
+        internal AssemblyLoadContext LoadContext => _context;
 
         /// <summary>
         /// Load the main assembly for the plugin.
@@ -129,7 +126,6 @@ namespace McMaster.NETCore.Plugins
             return LoadAssembly(new AssemblyName(assemblyName));
         }
 
-#if FEATURE_UNLOAD
         /// <summary>
         /// Disposes the plugin loader. This only does something if <see cref="IsUnloadable" /> is true.
         /// When true, this will unload assemblies which which were loaded during the lifetime
@@ -144,21 +140,20 @@ namespace McMaster.NETCore.Plugins
 
             _disposed = true;
 
+#if FEATURE_UNLOAD
             if (_context.IsCollectible)
             {
                 _context.Unload();
             }
-    }
 #endif
+        }
 
         private void EnsureNotDisposed()
         {
-#if FEATURE_UNLOAD
             if (_disposed)
             {
                 throw new ObjectDisposedException(nameof(PluginLoader));
             }
-#endif
         }
 
         private static AssemblyLoadContext CreateLoadContext(

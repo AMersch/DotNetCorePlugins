@@ -25,6 +25,7 @@ namespace McMaster.NETCore.Plugins.Loader
         private readonly HashSet<string> _defaultAssemblies = new HashSet<string>(StringComparer.Ordinal);
         private string _basePath;
         private bool _preferDefaultLoadContext;
+        private bool _isCollectible = true;
 
         /// <summary>
         /// Creates an assembly load context using settings specified on the builder.
@@ -49,7 +50,8 @@ namespace McMaster.NETCore.Plugins.Loader
                 _defaultAssemblies,
                 _additionalProbingPaths,
                 resourceProbingPaths,
-                _preferDefaultLoadContext);
+                _preferDefaultLoadContext,
+                _isCollectible);
         }
 
         /// <summary>
@@ -200,6 +202,19 @@ namespace McMaster.NETCore.Plugins.Loader
             _resourceProbingPaths.Add(path);
             return this;
         }
+
+#if FEATURE_UNLOAD
+        /// <summary>
+        /// Ensure the assembly load context cannot be unloaded.
+        /// Unloaded is enabled by default unless this API is called to opt-out;
+        /// </summary>
+        /// <returns>The builder</returns>
+        public AssemblyLoadContextBuilder DisableUnloading()
+        {
+            _isCollectible = false;
+            return this;
+        }
+#endif
 
         /// <summary>
         /// Add a <paramref name="path"/> that should be use to search for resource assemblies (aka satellite assemblies)

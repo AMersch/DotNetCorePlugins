@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using McMaster.Extensions.Xunit;
 using Test.Referenced.Library;
 using Xunit;
@@ -13,19 +14,38 @@ namespace McMaster.NETCore.Plugins.Tests
         public void PluginLoaderCanUnload()
         {
             var path = TestResources.GetTestProjectAssembly("NetCoreApp20App");
+
+            // See https://github.com/dotnet/coreclr/pull/22221
+
+            ExecuteAndUnload(path, out var weakRef);
+
+            // Force a GC collect to ensure unloaded has completed 
+            for (var i = 0; weakRef.IsAlive && (i < 10); i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            Assert.False(weakRef.IsAlive);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)] // ensure no local vars are create
+        private void ExecuteAndUnload(string path, out WeakReference weakRef)
+        {
             var loader = PluginLoader.CreateFromConfigFile(path);
             var assembly = loader.LoadDefaultAssembly();
 
             var method = assembly
                 .GetType("NetCoreApp20App.Program", throwOnError: true)
                 .GetMethod("GetGreeting", BindingFlags.Static | BindingFlags.Public);
+
+            Assert.True(loader.IsUnloadable);
             Assert.NotNull(method);
             Assert.Equal("Hello world!", method.Invoke(null, Array.Empty<object>()));
             loader.Dispose();
             Assert.Throws<ObjectDisposedException>(() => loader.LoadDefaultAssembly());
-            Assert.True(loader.IsUnloadable);
-            Assert.Throws<InvalidOperationException>(
-                () => method.Invoke(null, Array.Empty<object>()));
+
+            weakRef = new WeakReference(loader.LoadContext, trackResurrection: true);
         }
 #endif
 
