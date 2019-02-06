@@ -1,5 +1,21 @@
 ﻿<Project>
   <PropertyGroup>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '0.2.4'">
+Bug fix:
+* Fix the MSBuild targets which generate plugin.config to put it into the correct output directory.
+    </PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '0.2.3'">
+Bug fix:
+* Fix config file generation when using the SDK package
+    </PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '0.2.2'">
+      <![CDATA[
+Bug fix:
+* Fix loading plugins which use SqlClient on Windows.
+* Fallback to loading assemblies from the plugin base directory when all else fails.
+* Normalize paths before loading native assets to workaround bug in .NET Core 2.x.
+]]>
+    </PackageReleaseNotes>
     <PackageReleaseNotes Condition="'$(VersionPrefix)' == '0.2.1'">
       <![CDATA[
 Bug fix:
