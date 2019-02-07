@@ -19,7 +19,7 @@ namespace McMaster.NETCore.Plugins.Tests
 
             ExecuteAndUnload(path, out var weakRef);
 
-            // Force a GC collect to ensure unloaded has completed 
+            // Force a GC collect to ensure unloaded has completed
             for (var i = 0; weakRef.IsAlive && (i < 10); i++)
             {
                 GC.Collect();
@@ -49,7 +49,11 @@ namespace McMaster.NETCore.Plugins.Tests
         }
 #endif
 
+#if NETCOREAPP3_0
+        [Fact(Skip = "Broken in .NET Core 3.0 - https://github.com/natemcmaster/DotNetCorePlugins/issues/34")]
+#else
         [Fact]
+#endif
         public void LoadsNetCoreProjectWithNativeDeps()
         {
             var path = TestResources.GetTestProjectAssembly("PowerShellPlugin");
@@ -124,7 +128,11 @@ namespace McMaster.NETCore.Plugins.Tests
             Assert.Contains("runtimes", (string)method.Invoke(null, Array.Empty<object>()));
         }
 
+#if NETCOREAPP3_0
+        [Fact(Skip = "Broken in .NET Core 3.0 Preview 2 - https://github.com/dotnet/coreclr/issues/22458")]
+#else
         [Fact]
+#endif
         [UseCulture("es")]
         public void ItLoadsSatelliteAssemblies()
         {
